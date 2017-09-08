@@ -1,0 +1,9 @@
+---
+- name: install required dependency
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - chromium
+    - x11-xserver-utils
+    - unclutter

@@ -1,0 +1,26 @@
+# Use interface wlan0  
+interface=wlan0
+
+# Explicitly specify the address to listen on  
+# listen-address={{ ap_address }}
+
+# DHCP-Server nicht aktiv für bestehendes Netzwerk
+no-dhcp-interface=eth0
+
+# DNS
+dhcp-option=option:dns-server,{{ ap_address }}
+
+# Bind to the interface to make sure we aren't sending things elsewhere  
+# bind-interfaces
+
+# Forward DNS requests to Google DNS
+# server=8.8.8.8
+
+# Don't forward short names  
+# domain-needed
+
+# Never forward addresses in the non-routed address spaces.  
+# bogus-priv
+
+# Assign IP addresses and lease time
+dhcp-range={{ ap_dhcp_start }},{{ ap_dhcp_end }},12h

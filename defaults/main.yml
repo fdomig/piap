@@ -1,0 +1,6 @@
+ap_address: 10.47.11.1
+ap_dhcp_start: 10.47.11.50
+ap_dhcp_end: 10.47.11.100
+
+ap_ssid: changeme-ssid
+ap_passphrase: changeme-password

@@ -1,0 +1,18 @@
+---
+- name: provision all matching hosts with role common and ap
+  become: true
+  roles:
+    - common
+    - ap
+  hosts:
+    - aps
+
+- name: provision all matching hosts with role common and tv
+  become: true
+  roles:
+    - common
+    - tv
+  hosts:
+    - tvs
+
+    

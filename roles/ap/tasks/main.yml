@@ -1,0 +1,120 @@
+---
+- name: install required dependencies
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - dnsmasq
+    - hostapd
+
+- name: stop service that are unconfigured for now
+  service:
+    name: "{{ item }}"
+    state: stopped
+  with_items:
+    - dnsmasq
+    - hostapd
+
+- name: configure dhcpdc
+  blockinfile:
+    dest: /etc/dhcpcd.conf
+    insertbefore: "^interface"
+    content: |
+      denyinterfaces wlan0
+
+- name: configure network interfaces
+  blockinfile:
+    dest: /etc/network/interfaces
+    content: |
+      allow-hotplug wlan0
+      iface wlan0 inet static
+      address {{ ap_address }}
+      netmask 255.255.255.0
+
+- name: restart dhcpcd service
+  service:
+    enabled: yes
+    name: dhcpcd
+    state: restarted
+
+- name: ifconfig wlan0 down
+  shell: ifconfig wlan0 down
+
+- name: ifconfig wlan0 up
+  shell: ifconfig wlan0 down
+
+- name: configure HostAP daemon
+  template:
+    src: templates/hostapd.conf.j2
+    dest: /etc/hostapd/hostapd.conf
+
+- name: configure HostAP startup options
+  lineinfile:
+    dest: /etc/default/hostapd
+    regexp: "^#?DAEMON_CONF="
+    line: 'DAEMON_CONF="/etc/hostapd/hostapd.conf"'
+
+- name: configure dnsmasq
+  template:
+    src: templates/dnsmasq.conf.j2
+    dest: /etc/dnsmasq.conf
+
+- name: enable IPv4 forwarding via configuration
+  lineinfile:
+    dest: /etc/sysctl.conf
+    regexp: "^#?net.ipv4.ip_forward="
+    line: "net.ipv4.ip_forward=1"
+
+- name: enable IPv4 forwarding immediately
+  shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
+
+- name: backup iptables
+  shell: "iptables-save > /etc/iptables.ipv4.nat.bak"
+
+- name: iptables masquerade eth0 packages
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: eth0
+    jump: MASQUERADE
+
+- name: iptables forward incoming
+  iptables:
+    chain: FORWARD
+    ctstate: RELATED,ESTABLISHED
+    in_interface: eth0
+    out_interface: wlan0
+    jump: ACCEPT
+
+- name: iptables forward outgoing
+  iptables:
+    chain: FORWARD
+    in_interface: wlan0
+    out_interface: eth0
+    jump: ACCEPT
+
+- name: store iptables
+  shell: "iptables-save > /etc/iptables.ipv4.nat"
+
+- name: configure rc.local to apply iptables on startup
+  blockinfile:
+    dest: /etc/rc.local
+    insertbefore: "exit 0"
+    content: |
+      iptables-restore < /etc/iptables.ipv4.nat
+
+- name: start service that are configured now
+  service:
+    name: "{{ item }}"
+    state: started
+  with_items:
+    - dnsmasq
+    - hostapd
+
+- name: enable service on startup
+  service:
+    name: "{{ item }}"
+    state: enabled
+  with_items:
+    - dnsmasq
+    - hostapd
